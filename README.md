@@ -1,142 +1,108 @@
-Server Waktu Berbasis TCP dengan Multithreading di Python
-Repositori ini merupakan implementasi Server Waktu (Time Server) menggunakan bahasa pemrograman Python. Server dapat menerima banyak koneksi secara bersamaan (concurrent) menggunakan teknik multithreading, serta memproses perintah TIME dan QUIT dari klien menggunakan protokol TCP.
+# TUGAS 2 PEMROGRAMAN JARINGAN C
 
-Informasi
-Nama: Reynandriel Pramas Thandya
+### NRP
 
-NRP: 5025231113
+5025231113
 
-Mata Kuliah: Pemrograman Jaringan C
+### Nama
 
-Deskripsi Umum
-Server ini dibangun menggunakan pendekatan Object-Oriented Programming (OOP) dengan dua kelas utama:
+Reynandriel Pramas Thandya
 
-Server: Mengelola socket server dan menerima koneksi dari klien.
+---
 
-ProcessTheClient: Menangani komunikasi dengan masing-masing klien dalam thread terpisah.
+## Deskripsi Umum
 
-Server membuka koneksi pada IP 0.0.0.0 dan port 45000, dan hanya akan memproses request klien yang valid dengan format tertentu. Koneksi dari masing-masing klien ditangani secara paralel menggunakan thread baru.
+Buatlah sebuah program time server dengan ketentuan sebagai berikut:
 
-Spesifikasi Teknis
-Port dan Protokol
-Port: 45000
+* Membuka port di port 45000 dengan transport TCP
+* Untuk memenuhi soal poin a, dapat digunakan kode atau program yang diberikan oleh soal poin b.
 
-Protokol Transport: TCP
+Kode program tersebut telah dapat membuka koneksi sebagai server dengan multithreading untuk menerima beberapa koneksi sekaligus. Program bekerja dengan bentuk **OOP (Object-Oriented Programming)** dengan dua class utama:
 
-Socket server dibuat menggunakan:
+### Class `Server`
 
-python
-Copy
-Edit
-socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-AF_INET: IPv4
+Memiliki atribut berupa:
 
-SOCK_STREAM: TCP
+* daftar client (array of client)
+* socket
+* thread (turunan dari `threading.Thread`)
 
-Format Request
-Server hanya akan memproses perintah yang memiliki format:
+Fungsi:
 
-TIME\r\n: Mengembalikan waktu saat ini dalam format hh:mm:ss.
+* `__init__()` untuk inisialisasi
+* `run()` untuk membuka koneksi dan mendengar seluruh koneksi (binding ke `0.0.0.0:8889`, lalu listen, dan menerima koneksi baru)
 
-QUIT\r\n: Menutup koneksi dengan klien.
+Jika ada koneksi, `Server` akan membuat instance `ProcessTheClient` untuk memproses data.
 
-Perintah lainnya akan dianggap tidak valid dan direspon dengan Invalid command\r\n.
+### Class `ProcessTheClient`
 
-Format Response
-Jika klien mengirimkan TIME\r\n, server akan merespon dengan:
+Turunan dari `threading.Thread`, memiliki:
 
-nginx
-Copy
-Edit
-JAM hh:mm:ss\r\n
-Contoh:
+* atribut: connection, address (IP address client), thread
+* fungsi `__init__()` untuk inisialisasi
+* fungsi `run()` untuk memproses data (menerima data 32 byte dan mengirimkan kembali)
 
-nginx
-Copy
-Edit
-JAM 13:27:45\r\n
-Multithreading
-Setiap koneksi klien ditangani oleh instance ProcessTheClient, yang merupakan turunan dari threading.Thread.
+### Fungsi `main`
 
-Thread baru dibuat setiap kali klien terhubung, sehingga server dapat menangani banyak permintaan secara bersamaan.
+* Membuat objek `Server` dan menjalankannya sebagai thread
+* Setiap koneksi klien akan ditangani oleh thread `ProcessTheClient`
 
-Struktur Program
-bash
-Copy
-Edit
-📦 root/
-├── server_thread.py      # File utama berisi implementasi server dan multithreading
-├── timeserver.py         # Contoh penggunaan server dan pengujian klien
-└── README.md             # Dokumentasi proyek ini
-server_thread.py
-Berisi definisi dua kelas utama:
+## Modifikasi
 
-Server: Membuka socket, menerima koneksi, dan menginisiasi ProcessTheClient.
+### Port dan Transport
 
-ProcessTheClient: Menerima, memfilter, dan merespons perintah dari klien.
+* Ubah port default dari 8889 menjadi 45000
+* Transport sudah menggunakan TCP (indikasi: `AF_INET`, `SOCK_STREAM`)
 
-timeserver.py
-Contoh program klien yang dapat digunakan untuk menguji koneksi ke server dan mengirim perintah TIME atau QUIT.
+### Multithreading
 
-Logging dan Penanganan Error
-Setiap request yang diterima akan ditampilkan di terminal beserta alamat IP klien.
+* Kelas `Server` dan `ProcessTheClient` merupakan turunan dari `thread.Thread`
+* Setiap instance dijalankan sebagai thread baru
 
-Jika terjadi exception saat pemrosesan, error akan ditampilkan.
+### Format Request
 
-Saat klien mengirim QUIT\r\n, koneksi akan ditutup secara teratur dengan logging.
+* Diawali dengan string `TIME` dan diakhiri dengan karakter `13` (`\r`) dan `10` (`\n`)
+* Jika tidak sesuai, koneksi akan ditutup
+* Jika sesuai, lakukan logging IP dan pesan dari klien
+* Lakukan pengecekan apakah teks adalah `TIME` atau `QUIT`
 
-Contoh Penggunaan
-Menjalankan Server
-bash
-Copy
-Edit
-python server_thread.py
-Contoh Output Server
-pgsql
-Copy
-Edit
-[INFO] Connection from 127.0.0.1:54012
-[INFO] Received: TIME from 127.0.0.1
-[INFO] Sent: JAM 14:53:22
-[INFO] Connection from 127.0.0.1:54013
-[INFO] Received: QUIT from 127.0.0.1
-[INFO] Connection closed from 127.0.0.1
-Contoh Output Klien
-ruby
-Copy
-Edit
->> TIME
-JAM 14:53:22
+### Penanganan `QUIT`
 
->> QUIT
-Connection closed by server.
-Pengujian
-Pengujian dilakukan dengan:
+* Jika menerima `QUIT\r\n`, koneksi ditutup dan logging ditampilkan
+* Gunakan blok `finally` untuk menutup koneksi
+* Tambahkan logging jika terjadi exception
 
-Menjalankan server
+### Format Response
 
-Menghubungkan dua klien, masing-masing dengan 3 koneksi (total 6 thread klien)
+* Untuk `TIME\r\n`, respon: `JAM <hh:mm:ss>\r\n`
+* Gunakan modul `datetime` dan fungsi `strftime("%H:%M:%S")`
+* Gunakan `f-string` untuk membentuk string respon
+* Ubah string ke bytes sebelum dikirim
 
-Memastikan semua koneksi aktif, dapat mengirim TIME dan QUIT, serta diproses secara bersamaan oleh server
+### Penanganan Invalid Command
 
-Hasil menunjukkan bahwa server membuat thread baru untuk setiap koneksi klien dan mampu menangani permintaan tanpa konflik atau blocking.
+* Tambahkan blok `else` jika perintah tidak dikenali
+* Kirim pesan `Invalid command\r\n` ke klien
+* Tutup koneksi
 
-Ketergantungan
-Python 3.x
+## Pengujian
 
-Tidak menggunakan library eksternal (hanya socket, threading, dan datetime)
+### Contoh Pengujian 1 Klien 3 Thread
 
-Kesimpulan
-Server ini memenuhi seluruh spesifikasi soal:
+* Server menerima koneksi dari satu klien yang membuat 3 koneksi (3 thread)
+* Total thread: 1 (server) + 3 (klien)
+* Output menunjukkan setiap permintaan `TIME` dan `QUIT` diproses secara paralel
 
-Menggunakan TCP pada port 45000
+### Contoh Pengujian 2 Klien 3 Thread Masing-masing
 
-Mendukung multithreading dan OOP
+* Total thread: 1 (server) + 6 (2 klien \* 3 koneksi)
+* Terlihat pada output bahwa semua thread aktif dan memproses permintaan klien secara bersamaan
 
-Memproses perintah TIME dan QUIT
+## Kesimpulan
 
-Menangani banyak koneksi secara bersamaan
+Program telah berhasil:
 
-Lisensi
-Repositori ini dibuat untuk keperluan akademik dalam mata kuliah Pemrograman Jaringan C di Institut Teknologi Sepuluh Nopember (ITS).
-
+* Membuka koneksi TCP pada port 45000
+* Menggunakan multithreading untuk menangani koneksi secara concurrent
+* Memproses request sesuai format yang ditentukan (`TIME` dan `QUIT`)
+* Memberikan respon dalam format string UTF-8 dan menangani kesalahan input
